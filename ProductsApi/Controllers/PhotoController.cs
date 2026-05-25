@@ -41,5 +41,28 @@ namespace ProductsApi.Controllers
             }
             return Ok(photos);
         }
+        //POST
+        [HttpPost("animal/{animalId}")]
+        public IActionResult UploadPhotosForAnimal(int animalId, [FromForm] List<IFormFile> photos)
+        {
+            if (photos == null || photos.Count == 0)
+            {
+                return BadRequest("Brak dodanych zdjec");
+            }
+
+            Console.WriteLine($"AnimalId: {animalId}");
+            Console.WriteLine($"Photos count: {photos.Count}");
+
+            foreach (var photo in photos)
+            {
+                Console.WriteLine($"{photo.FileName} | {photo.ContentType} | {photo.Length} bytes");
+            }
+
+            return Ok(new
+            {
+                animalId,
+                photosCount = photos.Count
+            });
+        }
     }
 }
