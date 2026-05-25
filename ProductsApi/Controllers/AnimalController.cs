@@ -17,11 +17,28 @@ namespace ProductsApi.Controllers
 
         // GET: api/Animals
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Animal>>> GetAnimals()
+        public async Task<ActionResult> GetAnimals()
         {
-            return await _context.Animals
-                .Include(a => a.Photo) // Dołączamy listę zdjęć do każdego zwierzaka
+            //ten endpoint musi zwracac anonimowy obiekt, poniewaz byl blad logiczny: potrzebuje zwracac liste zwierzat
+            //i wiedziec czy maja carda. z perspektywy frontu nie oplaca sie robic dwoch fetchy, wiec mamy takiego frankensteina
+            var animals = await _context.Animals
+                 .Include(a => a.Photo)
+                .Select(a => new
+                {
+                    a.AnimalId,
+                    a.Species,
+                    a.Name,
+                    a.Age,
+                    a.Sex,
+                    a.Description,
+                    Photos = a.Photo,
+                    Card = _context.Cards 
+                        .Where(c => c.AnimalId == a.AnimalId)
+                        .Select(c => new { c.Id, c.Status, c.Date })
+                        .FirstOrDefault()
+                })
                 .ToListAsync();
+            return Ok(animals);
         }
 
         // GET: api/Animals/5
