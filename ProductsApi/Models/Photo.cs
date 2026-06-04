@@ -1,4 +1,6 @@
-﻿namespace ProductsApi.Models
+﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+
+namespace ProductsApi.Models
 {
     public class Photo
     {
@@ -9,6 +11,7 @@
 
         public int AnimalId { get; set; }
 
+        [ValidateNever]
         public Animal Animal { get; set; } = null!;
     }
 }
