@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace ProductsApi.Models
 {
@@ -7,11 +9,15 @@ namespace ProductsApi.Models
         public int Id { get; set; }
         public bool Main { get; set; }
 
-        public string ApiLink { get; set; } = string.Empty;
+        public byte[]? ImageData { get; set; }
+
+        [NotMapped]
+        public string? Base64Data { get; set; }
 
         public int AnimalId { get; set; }
+        public string ImageExtension { get; set; } = string.Empty;
 
         [ValidateNever]
-        public Animal Animal { get; set; } = null!;
+        public Animal? Animal { get; set; }
     }
 }

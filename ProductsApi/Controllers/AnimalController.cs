@@ -68,7 +68,6 @@ namespace ProductsApi.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Animal>> GetAnimal(int id)
         {
-            // Używamy FirstOrDefaultAsync zamiast FindAsync, bo Include nie działa z FindAsync
             var animal = await _context.Animals
                 .Include(a => a.Photo)
                 .FirstOrDefaultAsync(a => a.AnimalId == id);
@@ -130,7 +129,37 @@ namespace ProductsApi.Controllers
             if (animal.Sex != 'M' && animal.Sex != 'F')
                 return BadRequest("'M' or 'F'");
 
-            _context.Entry(animal).State = EntityState.Modified;
+            if (animal.Photo != null)
+            {
+                foreach (var photo in animal.Photo)
+                {
+                    // Upewniamy się, że zdjęcie jest poprawnie przypisane do tego zwierzaka
+                    photo.AnimalId = id;
+
+                    if (!string.IsNullOrEmpty(photo.Base64Data))
+                    {
+                        string base64String = photo.Base64Data;
+                        if (base64String.Contains(","))
+                        {
+                            base64String = base64String.Split(',')[1];
+                        }
+
+                        try
+                        {
+                            // Konwersja nowego ciągu Base64 na tablicę bajtów
+                            photo.ImageData = Convert.FromBase64String(base64String);
+                        }
+                        catch (FormatException)
+                        {
+                            return BadRequest("Niepoprawny format ciągu Base64 w edytowanym zdjęciu.");
+                        }
+                    }
+                }
+            }
+
+            // Używamy metody Update(), która automatycznie śledzi zmiany 
+            // zarówno w samym obiekcie Animal, jak i wewnątrz kolekcji Photo.
+            _context.Update(animal);
 
             try
             {
@@ -148,6 +177,8 @@ namespace ProductsApi.Controllers
         [HttpPost]
         public async Task<ActionResult<Animal>> CreateAnimal(Animal animal)
         {
+            if (animal == null) return BadRequest("Brak danych zwierzaka.");
+
             var allowedSpecies = new[] { "Kot", "Pies" };
             if (!allowedSpecies.Contains(animal.Species))
                 return BadRequest("'Kot' or 'Pies'");
@@ -155,19 +186,39 @@ namespace ProductsApi.Controllers
             if (animal.Sex != 'M' && animal.Sex != 'F')
                 return BadRequest("'M' or 'F'");
 
-            if (animal.AnimalId == 0)
+            // Pozwalamy bazie danych na automatyczne wygenerowanie ID (Identity)
+            animal.AnimalId = 0;
+
+            if (animal.Photo != null)
             {
-                animal.AnimalId = await GetNextFreeAnimalId();
+                foreach (var photo in animal.Photo)
+                {
+                    // Resetujemy ID powiązanych obiektów, aby EF potraktował je jako nowe wpisy
+                    photo.Id = 0;
+                    photo.AnimalId = 0;
+
+                    if (!string.IsNullOrEmpty(photo.Base64Data))
+                    {
+                        string base64String = photo.Base64Data;
+                        if (base64String.Contains(","))
+                        {
+                            base64String = base64String.Split(',')[1];
+                        }
+
+                        try
+                        {
+                            // Konwersja bezpiecznego ciągu tekstowego na binarne tablice bajtów
+                            photo.ImageData = Convert.FromBase64String(base64String);
+                        }
+                        catch (FormatException)
+                        {
+                            return BadRequest("Niepoprawny format ciągu Base64 w dodawanym zdjęciu.");
+                        }
+                    }
+                }
             }
 
-            var animalExists = await _context.Animals
-                .AnyAsync(a => a.AnimalId == animal.AnimalId);
-
-            if (animalExists)
-            {
-                return BadRequest($"Animal with ID {animal.AnimalId} already exists.");
-            }
-
+            // EF Core doda zwierzaka, pobierze jego nowe ID i automatycznie przypisze je do zdjęć przed zapisem
             _context.Animals.Add(animal);
             await _context.SaveChangesAsync();
 
