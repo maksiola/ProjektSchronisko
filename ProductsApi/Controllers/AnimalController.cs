@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProductsApi.Models;
@@ -42,8 +43,7 @@ namespace ProductsApi.Controllers
         [HttpGet]
         public async Task<ActionResult> GetAnimals()
         {
-            //ten endpoint musi zwracac anonimowy obiekt, poniewaz byl blad logiczny: potrzebuje zwracac liste zwierzat
-            //i wiedziec czy maja carda. z perspektywy frontu nie oplaca sie robic dwoch fetchy, wiec mamy takiego frankensteina
+            
             var animals = await _context.Animals
                  .Include(a => a.Photo)
                 .Select(a => new
@@ -77,7 +77,6 @@ namespace ProductsApi.Controllers
             return animal;
         }
 
-        //search?query=xxx
         [HttpGet("search")]
         public async Task<ActionResult> SearchAnimals(
          [FromQuery] string? query,
@@ -117,6 +116,7 @@ namespace ProductsApi.Controllers
             return Ok(animals);
         }
 
+        [Authorize]
         [HttpPut("{id}")]
         public async Task<IActionResult> PutAnimal(int id, [FromBody] Animal animal)
         {
@@ -174,6 +174,7 @@ namespace ProductsApi.Controllers
             return Ok(animal);
         }
 
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<Animal>> CreateAnimal(Animal animal)
         {
@@ -229,7 +230,7 @@ namespace ProductsApi.Controllers
             );
         }
 
-        // DELETE: api/Animals/5
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAnimal(int id)
         {

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProductsApi.Models;
 
@@ -40,6 +41,7 @@ namespace ProductsApi.Controllers
             return card;
         }
 
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<Card>> PostCard(Card card)
         {
@@ -48,6 +50,7 @@ namespace ProductsApi.Controllers
 
             return CreatedAtAction(nameof(GetCard), new { id = card.Id }, card);
         }
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCard(int id)
         {
