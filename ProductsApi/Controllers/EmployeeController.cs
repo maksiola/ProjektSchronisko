@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProductsApi.Models;
 using ProductsApi.Services;
@@ -21,18 +21,39 @@ namespace ProductsApi.Controllers
         [HttpPost("authenticate")]
         public ActionResult<Employee> Authenticate([FromBody] AuthenticateRequest model)
         {
-            var employee = _userService.Authenticate(model.Username, model.Password);
+            // sprawdza czy jest pusto
+            if (model == null || string.IsNullOrWhiteSpace(model.Username) || string.IsNullOrWhiteSpace(model.Password))
+            {
+                return BadRequest(new { code = 400, message = "Nazwa i hasło muszą być wpisane." });
+            }
 
-            if (employee == null)
-                return BadRequest(new { message = "Nazwa użytkownika lub hasło są niepoprawne" });
+            try
+            {
+                var employee = _userService.Authenticate(model.Username, model.Password);
 
-            return Ok(employee);
+                if (employee == null)
+                {
+                    return BadRequest(new { code = 400, message = "Nazwa lub hasło są niepoprawne." });
+                }
+
+                return Ok(employee);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { code = 500, message = $"Wystąpił błąd podczas autentykacji: {ex.Message}" });
+            }
         }
 
         [AllowAnonymous]
         [HttpPost("register")]
         public ActionResult<Employee> Register([FromBody] Employee employeeParam)
         {
+          
+            if (employeeParam == null)
+            {
+                return BadRequest(new { code = 400, message = "Dane do rejestracji muszą być uzupełnione." });
+            }
+
             try
             {
                 var newEmployee = _userService.Register(employeeParam);
@@ -40,15 +61,29 @@ namespace ProductsApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { code = 400, message = ex.Message });
             }
         }
 
         [HttpGet]
         public ActionResult<IEnumerable<Employee>> GetAll()
         {
-            var employees = _userService.GetAll();
-            return Ok(employees);
+            try
+            {
+                var employees = _userService.GetAll();
+
+                // jeśli lista jest pusta zwraca kod 404 zamiast pustej listy
+                if (employees == null || !employees.Any())
+                {
+                    return NotFound(new { code = 404, message = "Nie znaleziono użytkowników." });
+                }
+
+                return Ok(employees);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { code = 500, message = $"Nie udało się pobrać użytkowników: {ex.Message}" });
+            }
         }
     }
 
