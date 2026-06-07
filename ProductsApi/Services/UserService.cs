@@ -28,9 +28,9 @@ namespace ProductsApi.Services
                 return null;
 
             
-            employee.Token = GenerateToken(employee.Id.ToString());
+            employee.Token = GenerateToken(employee.Id.ToString()); //dodajemy do pustego pola Token token wygenerowany przez funkcje generatetoken
 
-            
+
             employee.Password = string.Empty;
 
             return employee;

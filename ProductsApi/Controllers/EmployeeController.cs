@@ -5,7 +5,7 @@ using ProductsApi.Services;
 
 namespace ProductsApi.Controllers
 {
-    [Authorize]
+    [Authorize] //mowi ze nikt nie ma wstepu do zadnej metody w tej klasie chyba że jest zalogowany i ma wazny token - middleware
     [Route("api/[controller]")]
     [ApiController]
     public class UsersController : ControllerBase
