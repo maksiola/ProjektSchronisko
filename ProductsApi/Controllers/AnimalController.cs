@@ -43,9 +43,8 @@ namespace ProductsApi.Controllers
         [HttpGet]
         public async Task<ActionResult> GetAnimals()
         {
-            
             var animals = await _context.Animals
-                 .Include(a => a.Photo)
+                .Include(a => a.Photo)
                 .Select(a => new
                 {
                     a.AnimalId,
@@ -54,8 +53,17 @@ namespace ProductsApi.Controllers
                     a.Age,
                     a.Sex,
                     a.Description,
-                    Photos = a.Photo,
-                    Card = _context.Cards 
+                    Photos = a.Photo.Select(p => new
+                    {
+                        p.Id,
+                        p.Main,
+                        Base64Data = p.ImageData != null
+                        ? Convert.ToBase64String(p.ImageData)
+                        : null,
+                        p.ImageExtension,
+                        p.AnimalId
+                    }),
+                    Card = _context.Cards
                         .Where(c => c.AnimalId == a.AnimalId)
                         .Select(c => new { c.Id, c.Status, c.Date })
                         .FirstOrDefault()
