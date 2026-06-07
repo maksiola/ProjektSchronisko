@@ -9,7 +9,7 @@ namespace ProductsApi.Models
         public string Status { get; set; } = string.Empty;
         public int AnimalId { get; set; }
 
-        public Animal Animal { get; set; } = null!;
+        public Animal? Animal { get; set; }
 
 
 
