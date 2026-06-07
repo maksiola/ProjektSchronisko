@@ -17,64 +17,166 @@ namespace ProductsApi.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Card>>> GetAllCards()
+        public async Task<IActionResult> GetAllCards()
         {
-            return await _context.Cards
-                .Include(c => c.Animal)
-                    .ThenInclude(a => a.Photo.Where(p => p.Main == true))
-                .ToListAsync();
+            //try catch
+            try
+            {
+                var cards = await _context.Cards
+                    .Include(c => c.Animal)
+                        .ThenInclude(a => a.Photo.Where(p => p.Main == true))
+                    .ToListAsync();
+
+                return Ok(new
+                {
+                    code = 200,
+                    message = "Poprawnie załadowano karty",
+                    data = cards
+                });
+            }
+            catch (Exception ex)
+            {
+                //blad serw
+                return StatusCode(500, new
+                {
+                    code = 500,
+                    message = "Błąd w trakcie ładowania kart",
+                    error = ex.Message
+                });
+            }
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Card>> GetCard(int id)
+        public async Task<IActionResult> GetCard(int id)
         {
-            var card = await _context.Cards
-                .Include(c => c.Animal)
-                    .ThenInclude(a => a.Photo.Where(p => p.Main == true))
-                .FirstOrDefaultAsync(c => c.Id == id);
-
-            if (card == null)
+            //try catch
+            try
             {
-                return NotFound();
-            }
+                var card = await _context.Cards
+                    .Include(c => c.Animal)
+                        .ThenInclude(a => a.Photo.Where(p => p.Main == true))
+                    .FirstOrDefaultAsync(c => c.Id == id);
 
-            return card;
+                if (card == null)
+                {
+                    return NotFound(new
+                    {
+                        code = 404,
+                        message = $"Karta z {id} nie została znaleziona"
+                    });
+                }
+
+                return Ok(new
+                {
+                    code = 200,
+                    message = "Poprawnie załadowano kartę",
+                    data = card
+                });
+            }
+            catch (Exception ex)
+            {
+                //blad serw
+                return StatusCode(500, new
+                {
+                    code = 500,
+                    message = "Błąd w trakcie ładowania kart",
+                    error = ex.Message
+                });
+            }
         }
 
         [Authorize]
         [HttpPost]
-        public async Task<ActionResult<Card>> PostCard(Card card)
+        public async Task<IActionResult> PostCard(Card card)
         {
-            _context.Cards.Add(card);
-            await _context.SaveChangesAsync();
+            //try-catch
+            try
+            {
+                //czy body jest puste
+                if (card == null)
+                {
+                    return BadRequest(new
+                    {
+                        code = 400,
+                        message = "Dane kerty są niezbędne"
+                    });
+                }
 
-            return CreatedAtAction(nameof(GetCard), new { id = card.Id }, card);
+                _context.Cards.Add(card);
+                await _context.SaveChangesAsync();
+
+                return CreatedAtAction(
+                    nameof(GetCard),
+                    new { id = card.Id },
+                    new
+                    {
+                        code = 201,
+                        message = "Pomyślnie załadowano kartę",
+                        data = card
+                    }
+                );
+            }
+            catch (Exception ex)
+            {
+                //blad serw
+                return StatusCode(500, new
+                {
+                    code = 500,
+                    message = "Błąd w trakcie ładowania kart",
+                    error = ex.Message
+                });
+            }
         }
+
         [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCard(int id)
         {
-            var card = await _context.Cards
-                .Include(c => c.Animal)
-                    .ThenInclude(a => a.Photo)
-                .FirstOrDefaultAsync(c => c.Id == id);
-
-            if (card == null)
+            // try-catch
+            try
             {
-                return NotFound();
+                var card = await _context.Cards
+                    .Include(c => c.Animal)
+                        .ThenInclude(a => a.Photo)
+                    .FirstOrDefaultAsync(c => c.Id == id);
+
+                if (card == null)
+                {
+                    return NotFound(new
+                    {
+                        code = 404,
+                        message = $"Karta z id {id} nie została znaleziona"
+                    });
+                }
+
+                _context.Cards.Remove(card);
+
+                if (card.Animal != null)
+                {
+                    _context.Animals.Remove(card.Animal);
+                }
+
+                await _context.SaveChangesAsync();
+
+
+                return Ok(new
+                {
+                    code = 200,
+                    message = $"Pomyślnie usunięto kartę z id {id}"
+                });
             }
-
-            _context.Cards.Remove(card);
-
-            if (card.Animal != null)
+            catch (Exception ex)
             {
-                _context.Animals.Remove(card.Animal);
+                //blad serw
+                return StatusCode(500, new
+                {
+                    code = 500,
+                    message = "Błąd w trakcie usuwania karty",
+                    error = ex.Message
+                });
             }
-
-            await _context.SaveChangesAsync();
-
-            return NoContent();
         }
+
         [Authorize]
         [HttpPut("{id}")]
         public async Task<IActionResult> PutCard(int id, Card card)

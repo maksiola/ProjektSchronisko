@@ -43,78 +43,69 @@ namespace ProductsApi.Controllers
         [HttpGet]
         public async Task<ActionResult> GetAnimals()
         {
-            
-            var animals = await _context.Animals
-                 .Include(a => a.Photo)
-                .Select(a => new
+            try
+            {
+                var animals = await _context.Animals
+                    .Include(a => a.Photo)
+                    .Select(a => new
+                    {
+                        a.AnimalId,
+                        a.Species,
+                        a.Name,
+                        a.Age,
+                        a.Sex,
+                        a.Description,
+                        Photos = a.Photo,
+                        Card = _context.Cards
+                            .Where(c => c.AnimalId == a.AnimalId)
+                            .Select(c => new { c.Id, c.Status, c.Date })
+                            .FirstOrDefault()
+                    })
+                    .ToListAsync();
+
+                return Ok(animals);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
                 {
-                    a.AnimalId,
-                    a.Species,
-                    a.Name,
-                    a.Age,
-                    a.Sex,
-                    a.Description,
-                    Photos = a.Photo,
-                    Card = _context.Cards 
-                        .Where(c => c.AnimalId == a.AnimalId)
-                        .Select(c => new { c.Id, c.Status, c.Date })
-                        .FirstOrDefault()
-                })
-                .ToListAsync();
-            return Ok(animals);
+                    message = "Błąd serwera, nie pobrało zwierząt",
+                    error = ex.Message
+                });
+            }
         }
 
         // GET: api/Animals/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Animal>> GetAnimal(int id)
         {
-            var animal = await _context.Animals
-                .Include(a => a.Photo)
-                .FirstOrDefaultAsync(a => a.AnimalId == id);
+            try
+            {
+                var animal = await _context.Animals
+                    .Include(a => a.Photo)
+                    .FirstOrDefaultAsync(a => a.AnimalId == id);
 
-            if (animal == null) return NotFound();
-
-            return animal;
-        }
-
-        [HttpGet("search")]
-        public async Task<ActionResult> SearchAnimals(
-         [FromQuery] string? query,
-         [FromQuery] string? species,
-         [FromQuery] char? sex)
-        {
-            var animalsQuery = _context.Animals
-                .Include(a => a.Photo)
-                .AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(query))
-                animalsQuery = animalsQuery.Where(a => a.Name.StartsWith(query));
-
-            if (!string.IsNullOrWhiteSpace(species))
-                animalsQuery = animalsQuery.Where(a => a.Species == species);
-
-            if (sex.HasValue)
-                animalsQuery = animalsQuery.Where(a => a.Sex == sex.Value);
-
-            var animals = await animalsQuery
-                .Select(a => new
+                if (animal == null)
                 {
-                    a.AnimalId,
-                    a.Species,
-                    a.Name,
-                    a.Age,
-                    a.Sex,
-                    a.Description,
-                    Photos = a.Photo,
-                    Card = _context.Cards
-                        .Where(c => c.AnimalId == a.AnimalId)
-                        .Select(c => new { c.Id, c.Status, c.Date })
-                        .FirstOrDefault()
-                })
-                .ToListAsync();
+                    return NotFound(new
+                    {
+                        message = $"Nie znaleziono zwierzęcia o ID {id}"
+                    });
+                }
 
-            return Ok(animals);
+                return Ok(animal);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Błąd podczas pobierania",
+                    error = ex.Message
+                });
+            }
         }
+
+
 
         [Authorize]
         [HttpPut("{id}")]
@@ -133,7 +124,6 @@ namespace ProductsApi.Controllers
             {
                 foreach (var photo in animal.Photo)
                 {
-                    // Upewniamy się, że zdjęcie jest poprawnie przypisane do tego zwierzaka
                     photo.AnimalId = id;
 
                     if (!string.IsNullOrEmpty(photo.Base64Data))
@@ -146,19 +136,18 @@ namespace ProductsApi.Controllers
 
                         try
                         {
-                            // Konwersja nowego ciągu Base64 na tablicę bajtów
+
                             photo.ImageData = Convert.FromBase64String(base64String);
                         }
                         catch (FormatException)
                         {
-                            return BadRequest("Niepoprawny format ciągu Base64 w edytowanym zdjęciu.");
+                            return BadRequest("Niepoprawny format Base64");
                         }
                     }
                 }
             }
 
-            // Używamy metody Update(), która automatycznie śledzi zmiany 
-            // zarówno w samym obiekcie Animal, jak i wewnątrz kolekcji Photo.
+
             _context.Update(animal);
 
             try
@@ -187,14 +176,15 @@ namespace ProductsApi.Controllers
             if (animal.Sex != 'M' && animal.Sex != 'F')
                 return BadRequest("'M' or 'F'");
 
-            // Pozwalamy bazie danych na automatyczne wygenerowanie ID (Identity)
+
             animal.AnimalId = 0;
 
             if (animal.Photo != null)
             {
                 foreach (var photo in animal.Photo)
                 {
-                    // Resetujemy ID powiązanych obiektów, aby EF potraktował je jako nowe wpisy
+                    Console.WriteLine(photo);
+
                     photo.Id = 0;
                     photo.AnimalId = 0;
 
@@ -208,7 +198,6 @@ namespace ProductsApi.Controllers
 
                         try
                         {
-                            // Konwersja bezpiecznego ciągu tekstowego na binarne tablice bajtów
                             photo.ImageData = Convert.FromBase64String(base64String);
                         }
                         catch (FormatException)
@@ -219,33 +208,62 @@ namespace ProductsApi.Controllers
                 }
             }
 
-            // EF Core doda zwierzaka, pobierze jego nowe ID i automatycznie przypisze je do zdjęć przed zapisem
-            _context.Animals.Add(animal);
-            await _context.SaveChangesAsync();
+            try
+            {
+                _context.Animals.Add(animal);
+                await _context.SaveChangesAsync();
 
-            return CreatedAtAction(
-                nameof(GetAnimal),
-                new { id = animal.AnimalId },
-                animal
-            );
+                return CreatedAtAction(
+                    nameof(GetAnimal),
+                    new { id = animal.AnimalId },
+                    new
+                    {
+                        message = "utworzono zwierze",
+                        animal
+                    });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Błąd podczas tworzenia zwierzęcia",
+                    error = ex.Message
+                });
+            }
         }
 
         [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAnimal(int id)
         {
-            var animal = await _context.Animals.FindAsync(id);
-
-            if (animal == null)
+            try
             {
-                return NotFound();
+                var animal = await _context.Animals.FindAsync(id);
+
+                if (animal == null)
+                {
+                    return NotFound(new
+                    {
+                        message = $"Nie znaleziono zwierzęcia z ID {id}"
+                    });
+                }
+
+                _context.Animals.Remove(animal);
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    message = "Zwierzę zostało usunięte"
+                });
             }
-
-            _context.Animals.Remove(animal);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Błąd podczas usuwania",
+                    error = ex.Message
+                });
+            }
         }
-
     }
-}
+    }

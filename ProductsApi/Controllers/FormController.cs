@@ -41,12 +41,39 @@ namespace ProductsApi.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(Form form)
         {
-            form.Date = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+            try
+            {
+                if (form == null)
+                {
+                    return BadRequest(new
+                    {
+                        code = 400,
+                        message = "Dane formularza są obowiązkowe"
+                    });
+                }
 
-            _context.Forms.Add(form);
-            await _context.SaveChangesAsync();
+                form.Date = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
 
-            return Ok(form);
+                _context.Forms.Add(form);
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    code = 200,
+                    message = "Poparwnie dodano formularz",
+                    data = form
+                });
+            }
+            catch (Exception ex)
+            {
+                //blad serw
+                return StatusCode(500, new
+                {
+                    code = 500,
+                    message = "Błąd w trakcie dodawania formularza",
+                    error = ex.Message
+                });
+            }
         }
     }
 }
