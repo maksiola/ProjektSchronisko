@@ -75,6 +75,29 @@ namespace ProductsApi.Controllers
 
             return NoContent();
         }
+        [Authorize]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutCard(int id, Card card)
+        {
+            if (id != card.Id)
+                return BadRequest();
+
+            card.Animal = null;
+            _context.Entry(card).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_context.Cards.Any(e => e.Id == id))
+                    return NotFound();
+                throw;
+            }
+
+            return NoContent();
+        }
 
         private bool CardExists(int id)
         {
