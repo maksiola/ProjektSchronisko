@@ -132,48 +132,24 @@ namespace ProductsApi.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCard(int id)
         {
-            // try-catch
             try
             {
                 var card = await _context.Cards
-                    .Include(c => c.Animal)
-                        .ThenInclude(a => a.Photo)
                     .FirstOrDefaultAsync(c => c.Id == id);
 
                 if (card == null)
                 {
-                    return NotFound(new
-                    {
-                        code = 404,
-                        message = $"Karta z id {id} nie została znaleziona"
-                    });
+                    return NotFound(new { code = 404, message = $"Karta z id {id} nie została znaleziona" });
                 }
 
                 _context.Cards.Remove(card);
-
-                if (card.Animal != null)
-                {
-                    _context.Animals.Remove(card.Animal);
-                }
-
                 await _context.SaveChangesAsync();
 
-
-                return Ok(new
-                {
-                    code = 200,
-                    message = $"Pomyślnie usunięto kartę z id {id}"
-                });
+                return Ok(new { code = 200, message = $"Pomyślnie usunięto kartę z id {id}" });
             }
             catch (Exception ex)
             {
-                //blad serw
-                return StatusCode(500, new
-                {
-                    code = 500,
-                    message = "Błąd w trakcie usuwania karty",
-                    error = ex.Message
-                });
+                return StatusCode(500, new { code = 500, message = "Błąd w trakcie usuwania karty", error = ex.Message });
             }
         }
 
