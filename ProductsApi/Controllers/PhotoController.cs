@@ -53,5 +53,22 @@ namespace ProductsApi.Controllers
             }
             catch (Exception ex) { return StatusCode(500, $"Błąd zapisu: {ex.Message}"); }
         }
+        [HttpDelete("animal/{animalId}")]
+        public async Task<IActionResult> DeletePhotosByAnimal(int animalId)
+        {
+            try
+            {
+                var photos = await _context.Photos.Where(p => p.AnimalId == animalId).ToListAsync();
+
+                if (photos.Count > 0)
+                {
+                    _context.Photos.RemoveRange(photos);
+                    await _context.SaveChangesAsync();
+                }
+
+                return Ok(new { message = "Zdjęcia zostały usunięte" });
+            }
+            catch (Exception ex) { return StatusCode(500, $"Błąd usuwania: {ex.Message}"); }
+        }
     }
 }

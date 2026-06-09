@@ -177,6 +177,28 @@ namespace ProductsApi.Controllers
             return NoContent();
         }
 
+        [Authorize]
+        [HttpDelete("animal/{animalId}")]
+        public async Task<IActionResult> DeleteCardByAnimalId(int animalId)
+        {
+            try
+            {
+                var card = await _context.Cards.FirstOrDefaultAsync(c => c.AnimalId == animalId);
+
+                if (card == null)
+                    return Ok(new { code = 200, message = "Brak karty dla tego zwierzęcia" });
+
+                _context.Cards.Remove(card);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { code = 200, message = $"Pomyślnie usunięto kartę dla zwierzęcia {animalId}" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { code = 500, message = "Błąd usuwania karty", error = ex.Message });
+            }
+        }
+
         private bool CardExists(int id)
         {
             return _context.Cards.Any(e => e.Id == id);

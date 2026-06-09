@@ -261,7 +261,8 @@ namespace ProductsApi.Controllers
                 return StatusCode(500, new
                 {
                     message = "Błąd podczas usuwania",
-                    error = ex.Message
+                    error = ex.Message,
+                     inner = ex.InnerException?.Message
                 });
             }
         }
