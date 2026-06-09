@@ -1,4 +1,8 @@
-﻿namespace ProductsApi.Models
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+
+
+namespace ProductsApi.Models
 {
     public class Form
     {
@@ -11,7 +15,9 @@
         public string Content { get; set; } = string.Empty;
 
         public int AnimalId { get; set; }
-        public Animal Animal { get; set; } = null!;
+        [ValidateNever]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public Animal? Animal { get; set; }
 
 
     }
