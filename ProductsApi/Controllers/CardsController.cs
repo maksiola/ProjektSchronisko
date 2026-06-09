@@ -89,18 +89,53 @@ namespace ProductsApi.Controllers
         [HttpPost]
         public async Task<IActionResult> PostCard(Card card)
         {
-            //try-catch
             try
             {
-                //czy body jest puste
+                // Czy body jest puste
                 if (card == null)
                 {
                     return BadRequest(new
                     {
                         code = 400,
-                        message = "Dane kerty są niezbędne"
+                        message = "Dane karty są niezbędne"
                     });
                 }
+
+                // --- NOWA LOGIKA PRZETWARZANIA BASE64 DLA ZDJĘĆ ZWIERZAKA W KARCIE ---
+                if (card.Animal != null && card.Animal.Photo != null)
+                {
+                    foreach (var photo in card.Animal.Photo)
+                    {
+                        // Resetujemy ID, aby baza danych przypisała je automatycznie (Identity)
+                        photo.Id = 0;
+
+                        if (!string.IsNullOrEmpty(photo.Base64Data))
+                        {
+                            string base64String = photo.Base64Data;
+
+                            // Pozbywamy się nagłówka np. "data:image/png;base64,"
+                            if (base64String.Contains(","))
+                            {
+                                base64String = base64String.Split(',')[1];
+                            }
+
+                            try
+                            {
+                                // Konwersja ciągu tekstowego na surowe bajty do bazy SQL
+                                photo.ImageData = Convert.FromBase64String(base64String);
+                            }
+                            catch (FormatException)
+                            {
+                                return BadRequest(new
+                                {
+                                    code = 400,
+                                    message = $"Niepoprawny format ciągu Base64 w zdjęciu dla zwierzęcia {card.Animal.Name}."
+                                });
+                            }
+                        }
+                    }
+                }
+                // --------------------------------------------------------------------
 
                 _context.Cards.Add(card);
                 await _context.SaveChangesAsync();
@@ -111,19 +146,19 @@ namespace ProductsApi.Controllers
                     new
                     {
                         code = 201,
-                        message = "Pomyślnie załadowano kartę",
+                        message = "Pomyślnie utworzono kartę wraz z danymi zwierzęcia",
                         data = card
                     }
                 );
             }
             catch (Exception ex)
             {
-                //blad serw
                 return StatusCode(500, new
                 {
                     code = 500,
-                    message = "Błąd w trakcie ładowania kart",
-                    error = ex.Message
+                    message = "Błąd w trakcie zapisywania karty",
+                    error = ex.Message,
+                    inner = ex.InnerException?.Message
                 });
             }
         }

@@ -18,6 +18,7 @@ namespace ProductsApi.Models
         public string ImageExtension { get; set; } = string.Empty;
 
         [ValidateNever]
+        [JsonIgnore]
         public Animal? Animal { get; set; }
     }
 }
