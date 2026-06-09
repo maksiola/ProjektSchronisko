@@ -15,29 +15,35 @@ namespace ProductsApi.Controllers
             _context = context;
         }
 
-        // GET: api/forms
+        // GET: api/Forms
         [HttpGet]
         public async Task<IActionResult> GetAllForms()
         {
             try
             {
-                var forms = await _context.Forms.ToListAsync();
+                var forms = await _context.Forms
+                    .OrderByDescending(f => f.Id)
+                    .ToListAsync();
 
-                // sprawdza czy w bazie są jakieś formularze
-                if (forms == null || !forms.Any())
+                return Ok(new
                 {
-                    return NotFound(new { code = 404, message = "Brak formularzy." });
-                }
-
-                return Ok(forms);
+                    code = 200,
+                    message = "Forms loaded successfully.",
+                    data = forms
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { code = 500, message = $"Błąd podczas pobierania formularzy: {ex.Message}" });
+                return StatusCode(500, new
+                {
+                    code = 500,
+                    message = "Error while loading forms.",
+                    error = ex.Message
+                });
             }
         }
 
-        // POST: api/forms
+        // POST: api/Forms
         [HttpPost]
         public async Task<IActionResult> Create(Form form)
         {
@@ -48,7 +54,7 @@ namespace ProductsApi.Controllers
                     return BadRequest(new
                     {
                         code = 400,
-                        message = "Dane formularza są obowiązkowe"
+                        message = "Form data is required."
                     });
                 }
 
@@ -60,17 +66,16 @@ namespace ProductsApi.Controllers
                 return Ok(new
                 {
                     code = 200,
-                    message = "Poparwnie dodano formularz",
+                    message = "Form submitted successfully.",
                     data = form
                 });
             }
             catch (Exception ex)
             {
-                //blad serw
                 return StatusCode(500, new
                 {
                     code = 500,
-                    message = "Błąd w trakcie dodawania formularza",
+                    message = "Error while submitting form.",
                     error = ex.Message
                 });
             }
